@@ -59,7 +59,9 @@ public class Servidor {
                 while (true) {
                     //Leo el mensaje que me envia
                     String mensaje = in.readUTF();
-                    mensaje=Criptografia.desencriptarAsimetrico(mensaje.getBytes(),llaves.getPrivate());
+                    byte[] mensaje2;
+                    mensaje2=Criptografia.base64ToByte(mensaje);
+                    mensaje=Criptografia.desencriptarAsimetrico(mensaje2,llaves.getPrivate());
                     System.out.println(sc.getInetAddress()+": "+mensaje);
                     //Le envio un mensaje
                     out.writeUTF("Recibido");
