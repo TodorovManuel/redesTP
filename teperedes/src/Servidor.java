@@ -1,9 +1,12 @@
+package teperedes.src;
+
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.Scanner;
+import java.nio.charset.StandardCharsets;
+import java.security.KeyPair;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -13,8 +16,7 @@ public class Servidor {
 
         ServerSocket servidor = null;
         Socket sc = null;
-        DataInputStream in;
-        DataOutputStream out;
+
 
         //puerto de nuestro servidor
         final int PUERTO = 5000;
@@ -23,39 +25,54 @@ public class Servidor {
             //Creamos el socket del servidor
             servidor = new ServerSocket(PUERTO);
             System.out.println("Servidor iniciado");
-
-            //Siempre estara escuchando peticiones
-            Scanner s = new Scanner(System.in);
             while (true) {
-
-                //Espero a que un cliente se conecte
                 sc = servidor.accept();
-
                 System.out.println("Cliente conectado");
-                in = new DataInputStream(sc.getInputStream());
-                out = new DataOutputStream(sc.getOutputStream());
-
-                //Leo el mensaje que me envia
-                String mensaje = in.readUTF();
-                System.out.println(mensaje);
-
-                //Le envio un mensaje
-                out.writeUTF("Recibido");
-
-                out.writeUTF(s.nextLine());
-                String msj = in.readUTF();
-                System.out.println(msj);
-
-                 //Cierro el socket
-                //sc.close();
-               // System.out.println("Cliente desconectado");
-
+                Thread clientThread = new Thread(new ClientHandler(sc));
+                clientThread.start();
             }
+
 
         } catch (IOException ex) {
             Logger.getLogger(Servidor.class.getName()).log(Level.SEVERE, null, ex);
         }
 
+    }
+    private static class ClientHandler implements Runnable {
+        private final Socket sc;
+        public ClientHandler( Socket sc) {
+            this.sc=sc;
+        }
+        @Override
+        public void run() {
+            try {
+                DataInputStream in;
+                DataOutputStream out;
+                //Espero a que un cliente se conecte
+                in = new DataInputStream(sc.getInputStream());
+                out = new DataOutputStream(sc.getOutputStream());
+                Criptografia cripto = new Criptografia();
+                KeyPair llaves = cripto.generarLlaves();
+                out.writeUTF((Criptografia.keyToStringBase64(llaves.getPublic())));
+                String llaveCliente = in.readUTF();
+                System.out.println(Criptografia.stringBase64ToKey(llaveCliente));
+                while (true) {
+                    //Leo el mensaje que me envia
+                    String mensaje = in.readUTF();
+                    mensaje=Criptografia.desencriptarAsimetrico(mensaje.getBytes(),llaves.getPrivate());
+                    System.out.println(sc.getInetAddress()+": "+mensaje);
+                    //Le envio un mensaje
+                    out.writeUTF("Recibido");
+
+                    //Cierro el socket
+                    //sc.close();
+                    //System.out.println("Cliente desconectado");
+
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
     }
 
 }
