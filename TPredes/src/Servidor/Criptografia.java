@@ -1,7 +1,8 @@
-package teperedes.src;
+package TPredes.src.Servidor;
 
 import javax.crypto.Cipher;
 import javax.crypto.NoSuchPaddingException;
+import java.nio.charset.StandardCharsets;
 import java.security.*;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
@@ -41,6 +42,29 @@ public class Criptografia {
     public static String desencriptarAsimetrico(byte[] cipherText, PrivateKey privateKey) throws Exception {
         Cipher cipher = Cipher.getInstance(RSA);
         cipher.init(Cipher.DECRYPT_MODE, privateKey);//desencripta con la priv.key propia
+        byte[] result= cipher.doFinal(cipherText);
+        return new String(result);
+    }
+    public static byte[] firma (byte[] aux, PrivateKey privateKey) throws Exception{
+        Cipher cipher = Cipher.getInstance(RSA);
+        cipher.init(Cipher.ENCRYPT_MODE, privateKey);       //firma con la propia priv.key
+        return cipher.doFinal(aux);
+    }
+    public static String firmaDigital(String mensaje, PrivateKey privateKey){
+        try{
+            int msg2=mensaje.hashCode();
+            String msg = Integer.toString(msg2);
+            byte[] msgB = msg.getBytes(StandardCharsets.UTF_8);
+            msgB=firma(msgB, privateKey);
+            return Criptografia.byteTobase64(msgB);
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+        return  null;
+    }
+    public static String desencriptarFirma(byte[] cipherText, PublicKey publicKey) throws Exception {
+        Cipher cipher = Cipher.getInstance(RSA);
+        cipher.init(Cipher.DECRYPT_MODE, publicKey);
         byte[] result= cipher.doFinal(cipherText);
         return new String(result);
     }
